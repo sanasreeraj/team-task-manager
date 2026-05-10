@@ -26,11 +26,11 @@ export default async function ProjectDetailsPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('is_admin')
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = profile?.is_admin === true
 
   const { data: project } = await supabase
     .from('projects')

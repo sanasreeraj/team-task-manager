@@ -11,13 +11,8 @@ export default async function MyTasksPage() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'admin') redirect('/dashboard/tasks')
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (profile?.is_admin !== true) redirect('/dashboard/tasks')
 
   // Only tasks assigned TO the admin
   const { data: tasks } = await supabase

@@ -14,13 +14,8 @@ export default async function ProjectsPage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const isAdmin = profile?.role === 'admin'
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  const isAdmin = profile?.is_admin === true
 
   let query = supabase
     .from('projects')

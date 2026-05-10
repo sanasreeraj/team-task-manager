@@ -20,11 +20,11 @@ export default async function NewProjectPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('is_admin')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
+  if (profile?.is_admin !== true) {
     redirect('/dashboard/projects')
   }
 

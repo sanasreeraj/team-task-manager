@@ -70,8 +70,8 @@ export async function deleteTask(taskId: string, projectId: string) {
   if (!user) return { error: 'Not authenticated' }
 
   // Verify admin role
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return { error: 'Only admins can delete tasks' }
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (profile?.is_admin !== true) return { error: 'Only admins can delete tasks' }
 
   const { error } = await supabase
     .from('tasks')

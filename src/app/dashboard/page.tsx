@@ -14,13 +14,8 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single()
-
-  const isAdmin = profile?.role === 'admin'
+  const { data: profile } = await supabase.from('profiles').select('is_admin, full_name').eq('id', user.id).single()
+  const isAdmin = profile?.is_admin === true
 
   // Time-based greeting
   const hour = new Date().getHours()

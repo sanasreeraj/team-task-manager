@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function Sidebar({ logoutAction, role, userName }: { logoutAction: () => void, role: string, userName: string }) {
+export function Sidebar({ logoutAction, role, userName, isAdmin }: { logoutAction: () => void, role: string, userName: string, isAdmin: boolean }) {
   const pathname = usePathname()
 
   const navigation = [
@@ -19,7 +19,7 @@ export function Sidebar({ logoutAction, role, userName }: { logoutAction: () => 
     { name: 'Task Board', href: '/dashboard/tasks', icon: ClipboardList, exact: true },
   ]
 
-  if (role === 'admin') {
+  if (isAdmin) {
     navigation.push({ name: 'My Tasks', href: '/dashboard/my-tasks', icon: CheckSquare, exact: true })
     navigation.push({ name: 'Team', href: '/dashboard/team', icon: Users, exact: true })
   }

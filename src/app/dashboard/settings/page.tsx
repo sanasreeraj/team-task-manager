@@ -62,9 +62,9 @@ export default async function SettingsPage() {
                 <span className="text-sm text-foreground/60">Role</span>
               </div>
               <span className={`text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                profile?.role === 'admin' ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'
+                profile?.is_admin === true ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'
               }`}>
-                {profile?.role}
+                {profile?.role || (profile?.is_admin ? 'Admin' : 'Member')}
               </span>
             </div>
             <div className="px-5 py-3.5 flex items-center justify-between">

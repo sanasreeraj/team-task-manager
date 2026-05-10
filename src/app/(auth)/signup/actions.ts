@@ -31,8 +31,10 @@ export async function signup(formData: FormData) {
   }
 
   // Admin code — no hardcoded fallback, env var required
-  const validAdminCode = process.env.ADMIN_ACCESS_CODE
-  const role = (adminCode && validAdminCode && adminCode === validAdminCode) ? 'admin' : 'member'
+  const is_admin = adminCode === process.env.ADMIN_ACCESS_CODE
+  if (adminCode && !is_admin) {
+    return redirect('/signup?error=' + encodeURIComponent('Invalid Admin Access Code'))
+  }
 
   const data = {
     email,
@@ -41,7 +43,9 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName,
         phone_number: phoneNumber,
-        role: role,
+        role: 'Member',
+        is_admin,
+        email,
       }
     }
   }
