@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronDown } from 'lucide-react'
 
 export default async function NewTaskPage({
   params,
@@ -131,32 +131,38 @@ export default async function NewTaskPage({
               <label htmlFor="assigned_to" className="block text-sm font-medium text-foreground/90 mb-1.5">
                 Assign To
               </label>
-              <select
-                id="assigned_to"
-                name="assigned_to"
-                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
-              >
-                <option value="">Unassigned</option>
-                {members?.map(member => (
-                  <option key={member.id} value={member.id}>{member.full_name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="assigned_to"
+                  name="assigned_to"
+                  className="block w-full rounded-xl border border-border bg-background py-3 pl-4 pr-10 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
+                >
+                  <option value="">Unassigned</option>
+                  {members?.map(member => (
+                    <option key={member.id} value={member.id}>{member.full_name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+              </div>
             </div>
             <div>
               <label htmlFor="priority" className="block text-sm font-medium text-foreground/90 mb-1.5">
                 Priority
               </label>
-              <select
-                id="priority"
-                name="priority"
-                defaultValue="medium"
-                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="priority"
+                  name="priority"
+                  defaultValue="medium"
+                  className="block w-full rounded-xl border border-border bg-background py-3 pl-4 pr-10 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -164,17 +170,20 @@ export default async function NewTaskPage({
               <label htmlFor="status" className="block text-sm font-medium text-foreground/90 mb-1.5">
                 Initial Status
               </label>
-              <select
-                id="status"
-                name="status"
-                defaultValue="todo"
-                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
-              >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="code_review">Code Review</option>
-                <option value="done">Done</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="status"
+                  name="status"
+                  defaultValue="todo"
+                  className="block w-full rounded-xl border border-border bg-background py-3 pl-4 pr-10 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
+                >
+                  <option value="todo">To Do</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="code_review">Code Review</option>
+                  <option value="done">Done</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+              </div>
             </div>
             <div>
               <label htmlFor="due_date" className="block text-sm font-medium text-foreground/90 mb-1.5">
@@ -184,6 +193,7 @@ export default async function NewTaskPage({
                 id="due_date"
                 name="due_date"
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm"
               />
             </div>

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { updateTaskStatus, updateTask, deleteTask } from '@/app/dashboard/tasks/actions'
 import { addComment, getComments } from '@/app/dashboard/tasks/comments'
-import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Send, Loader2, User } from 'lucide-react'
+import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Send, Loader2, User, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 type Task = {
@@ -197,29 +197,35 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/50 bg-card text-sm text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
           />
         </div>
-        <select
-          value={filterPriority}
-          onChange={(e) => setFilterPriority(e.target.value)}
-          className="rounded-lg border border-border/50 bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none transition-all"
-        >
-          <option value="all">All Priorities</option>
-          <option value="urgent">Urgent</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        {members && members.length > 0 && (
+        <div className="relative">
           <select
-            value={filterAssignee}
-            onChange={(e) => setFilterAssignee(e.target.value)}
-            className="rounded-lg border border-border/50 bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none transition-all"
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="rounded-lg border border-border/50 bg-card py-2 pl-3 pr-8 text-sm text-foreground focus:border-primary focus:outline-none transition-all appearance-none"
           >
-            <option value="all">All Assignees</option>
-            <option value="unassigned">Unassigned</option>
-            {members.map(m => (
-              <option key={m.id} value={m.id}>{m.full_name}</option>
-            ))}
+            <option value="all">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
           </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+        </div>
+        {members && members.length > 0 && (
+          <div className="relative">
+            <select
+              value={filterAssignee}
+              onChange={(e) => setFilterAssignee(e.target.value)}
+              className="rounded-lg border border-border/50 bg-card py-2 pl-3 pr-8 text-sm text-foreground focus:border-primary focus:outline-none transition-all appearance-none"
+            >
+              <option value="all">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.full_name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+          </div>
         )}
       </div>
 
@@ -348,37 +354,46 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-foreground/50 mb-1">Priority</label>
-                    <select value={editingTask.priority} onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
-                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
+                    <div className="relative">
+                      <select value={editingTask.priority} onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
+                        className="w-full rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-foreground focus:border-primary focus:outline-none appearance-none">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-foreground/50 mb-1">Due Date</label>
-                    <input type="date" value={editingTask.due_date || ''} onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
+                    <input type="date" min={new Date().toISOString().split('T')[0]} value={editingTask.due_date || ''} onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
                       className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-foreground/50 mb-1">Status</label>
-                    <select value={editingTask.status} onChange={e => setEditingTask({...editingTask, status: e.target.value})}
-                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
-                      <option value="todo">To Do</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="code_review">Code Review</option>
-                      <option value="done">Done</option>
-                    </select>
+                    <div className="relative">
+                      <select value={editingTask.status} onChange={e => setEditingTask({...editingTask, status: e.target.value})}
+                        className="w-full rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-foreground focus:border-primary focus:outline-none appearance-none">
+                        <option value="todo">To Do</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="code_review">Code Review</option>
+                        <option value="done">Done</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+                    </div>
                   </div>
                   {isAdmin && members && (
                     <div>
                       <label className="block text-xs font-medium text-foreground/50 mb-1">Assign To</label>
-                      <select value={editingTask.assigned_to || ''} onChange={e => setEditingTask({...editingTask, assigned_to: e.target.value || null})}
-                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
-                        <option value="">Unassigned</option>
-                        {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-                      </select>
+                      <div className="relative">
+                        <select value={editingTask.assigned_to || ''} onChange={e => setEditingTask({...editingTask, assigned_to: e.target.value || null})}
+                          className="w-full rounded-lg border border-border bg-background py-2 pl-3 pr-8 text-sm text-foreground focus:border-primary focus:outline-none appearance-none">
+                          <option value="">Unassigned</option>
+                          {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+                      </div>
                     </div>
                   )}
                 </div>

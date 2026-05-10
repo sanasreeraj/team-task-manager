@@ -1,7 +1,7 @@
 'use client'
 
 import { deleteMember, updateMemberDetails } from '@/app/dashboard/team/actions'
-import { Trash2, Edit2, X, Check, Loader2 } from 'lucide-react'
+import { Trash2, Edit2, X, Check, Loader2, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
@@ -115,10 +115,13 @@ export function MemberControls({
               </div>
               <div>
                 <label className="block text-xs font-medium text-foreground/60 mb-1">Role</label>
-                <select value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} className="w-full rounded-lg border border-border bg-background py-1.5 px-3 text-sm focus:border-primary focus:outline-none">
-                  <option value={editData.role}>{editData.role}</option>
-                  {ROLES.filter(r => r !== editData.role).map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                <div className="relative">
+                  <select value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} className="w-full rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-sm focus:border-primary focus:outline-none appearance-none">
+                    <option value={editData.role}>{editData.role}</option>
+                    {ROLES.filter(r => r !== editData.role).map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+                </div>
               </div>
             </div>
             <div className="px-5 py-4 border-t border-border/30 bg-foreground/[0.02] flex items-center justify-end gap-2">

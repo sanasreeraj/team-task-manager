@@ -42,7 +42,7 @@ export async function getProjectMembers(projectId: string) {
   
   const { data, error } = await supabase
     .from('project_members')
-    .select('user_id, profiles(id, full_name, role, designation)')
+    .select('user_id, profiles(id, full_name, role)')
     .eq('project_id', projectId)
 
   if (error) {
