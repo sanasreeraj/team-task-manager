@@ -1,6 +1,6 @@
 # Team Task Manager
 
-A full-stack project management web application built with **Next.js 16**, **Supabase**, and **Tailwind CSS**. Designed to replicate core workflows of Jira and Microsoft Planner — with role-based access control, drag-and-drop Kanban boards, real-time feedback threads, and a polished Apple-inspired UI.
+A full-stack project management web application built with **Next.js 16**, **Supabase**, and **Tailwind CSS**. Designed to replicate core workflows of Jira and Microsoft Planner — with role-based access control, drag-and-drop Kanban boards and real-time feedback threads.
 
 ## Features
 
