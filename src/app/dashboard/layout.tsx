@@ -17,15 +17,15 @@ export default async function DashboardLayout({
     .single()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-background">
       <Sidebar 
         logoutAction={logout} 
         role={profile?.role || 'member'} 
         userName={profile?.full_name || 'User'}
         isAdmin={profile?.is_admin === true}
       />
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-8 transition-all duration-300">
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 py-6 md:py-8 transition-all duration-300">
           {children}
         </div>
       </main>

@@ -144,6 +144,7 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
       title: editingTask.title,
       description: editingTask.description || '',
       priority: editingTask.priority,
+      status: editingTask.status,
       feedback: editingTask.feedback || '',
       assigned_to: editingTask.assigned_to || null,
       due_date: editingTask.due_date || null,
@@ -223,7 +224,7 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
       </div>
 
       {/* Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 h-[calc(100vh-240px)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 h-[calc(100vh-240px)] md:h-[calc(100vh-140px)]">
         {COLUMNS.map(column => {
           const columnTasks = getTasksForColumn(column.id)
           return (
@@ -256,7 +257,7 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                       <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium}`}>
                         {task.priority}
                       </span>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button onClick={() => setEditingTask(task)} className="p-1 rounded text-foreground/25 hover:text-primary hover:bg-primary/10 transition-all">
                           <Pencil className="w-3 h-3" />
                         </button>
@@ -315,7 +316,7 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
       {/* Edit Task Modal with Comments */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingTask(null)}>
-          <div className="bg-card rounded-2xl border border-border/50 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-card rounded-2xl border border-border/50 shadow-2xl w-full max-w-[95%] md:max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 shrink-0">
               <h2 className="text-sm font-bold text-foreground">Edit Task</h2>
@@ -328,39 +329,47 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-[1fr,280px] divide-x divide-border/20">
-                {/* Left: Task Details */}
-                <div className="p-5 space-y-4">
+            <div className="flex-1 overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-border/20">
+              {/* Left: Task Details */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-foreground/50 mb-1">Title</label>
+                  <input
+                    value={editingTask.title}
+                    onChange={e => setEditingTask({...editingTask, title: e.target.value})}
+                    className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground/50 mb-1">Description</label>
+                  <textarea rows={3} value={editingTask.description || ''} onChange={e => setEditingTask({...editingTask, description: e.target.value})}
+                    className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground/50 mb-1">Title</label>
-                    <input
-                      value={editingTask.title}
-                      onChange={e => setEditingTask({...editingTask, title: e.target.value})}
-                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
-                    />
+                    <label className="block text-xs font-medium text-foreground/50 mb-1">Priority</label>
+                    <select value={editingTask.priority} onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
+                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-foreground/50 mb-1">Description</label>
-                    <textarea rows={3} value={editingTask.description || ''} onChange={e => setEditingTask({...editingTask, description: e.target.value})}
-                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+                    <label className="block text-xs font-medium text-foreground/50 mb-1">Due Date</label>
+                    <input type="date" value={editingTask.due_date || ''} onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
+                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-foreground/50 mb-1">Priority</label>
-                      <select value={editingTask.priority} onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
-                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-foreground/50 mb-1">Due Date</label>
-                      <input type="date" value={editingTask.due_date || ''} onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
-                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none" />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/50 mb-1">Status</label>
+                    <select value={editingTask.status} onChange={e => setEditingTask({...editingTask, status: e.target.value})}
+                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="code_review">Code Review</option>
+                      <option value="done">Done</option>
+                    </select>
                   </div>
                   {isAdmin && members && (
                     <div>
@@ -373,46 +382,46 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Right: Comments/Feedback Log */}
-                <div className="flex flex-col bg-foreground/[0.01]">
-                  <div className="px-4 py-3 border-b border-border/20">
-                    <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5" /> Feedback
-                    </h3>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[300px] min-h-[200px]">
-                    {loadingComments ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-4 h-4 text-foreground/30 animate-spin" />
-                      </div>
-                    ) : comments.length === 0 ? (
-                      <p className="text-xs text-foreground/30 text-center py-8">No feedback yet</p>
-                    ) : (
-                      comments.map(c => (
-                        <div key={c.id} className="rounded-lg bg-card border border-border/30 p-2.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-semibold text-foreground/70">{c.profiles?.full_name || 'Unknown'}</span>
-                            <span className="text-[9px] text-foreground/30">{new Date(c.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          <p className="text-xs text-foreground/60 leading-relaxed">{c.content}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="p-3 border-t border-border/20">
-                    <div className="flex items-center gap-2">
-                      <input
-                        value={newComment}
-                        onChange={e => setNewComment(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
-                        placeholder="Add feedback..."
-                        className="flex-1 rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-foreground placeholder:text-foreground/25 focus:border-primary focus:outline-none"
-                      />
-                      <button onClick={handleAddComment} disabled={!newComment.trim() || sendingComment} className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all">
-                        {sendingComment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      </button>
+              {/* Right: Comments/Feedback Log */}
+              <div className="w-full md:w-[320px] flex flex-col bg-foreground/[0.01] shrink-0 min-h-[250px] md:min-h-0">
+                <div className="px-4 py-3 border-b border-border/20 shrink-0">
+                  <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <MessageSquare className="w-3.5 h-3.5" /> Feedback
+                  </h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {loadingComments ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-4 h-4 text-foreground/30 animate-spin" />
                     </div>
+                  ) : comments.length === 0 ? (
+                    <p className="text-xs text-foreground/30 text-center py-8">No feedback yet</p>
+                  ) : (
+                    comments.map(c => (
+                      <div key={c.id} className="rounded-lg bg-card border border-border/30 p-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-semibold text-foreground/70">{c.profiles?.full_name || 'Unknown'}</span>
+                          <span className="text-[9px] text-foreground/30">{new Date(c.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-xs text-foreground/60 leading-relaxed">{c.content}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="p-3 border-t border-border/20 shrink-0 bg-background md:bg-transparent">
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
+                      placeholder="Add feedback..."
+                      className="flex-1 rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-foreground placeholder:text-foreground/25 focus:border-primary focus:outline-none"
+                    />
+                    <button onClick={handleAddComment} disabled={!newComment.trim() || sendingComment} className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all">
+                      {sendingComment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
                 </div>
               </div>
