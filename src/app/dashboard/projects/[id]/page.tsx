@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Plus, ChevronLeft, ListChecks, CheckCircle2, Clock, Eye } from 'lucide-react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { DeleteProjectButton } from '@/components/DeleteProjectButton'
+import { ProjectMembers } from '@/components/ProjectMembers'
+import { getProjectMembers } from './member-actions'
 
 export default async function ProjectDetailsPage({
   params,
@@ -39,19 +41,21 @@ export default async function ProjectDetailsPage({
     redirect('/dashboard/projects')
   }
 
+  // Fetch project members
+  const projectMembers = await getProjectMembers(id)
+  
+  // Fetch all profiles for admin to add members
+  let allProfiles: any[] = []
+  if (isAdmin) {
+    const { data } = await supabase.from('profiles').select('id, full_name, role, designation')
+    allProfiles = data || []
+  }
+
   const { data: tasks } = await supabase
     .from('tasks')
     .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
     .eq('project_id', id)
     .order('created_at', { ascending: false })
-
-  let members: { id: string; full_name: string }[] = []
-  if (isAdmin) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-    members = data || []
-  }
 
   // Task stats
   const total = tasks?.length || 0
@@ -117,18 +121,31 @@ export default async function ProjectDetailsPage({
         )}
       </div>
 
-      {!tasks || tasks.length === 0 ? (
-        <div className="text-center py-20 bg-card/50 backdrop-blur-xl border border-dashed border-border rounded-3xl">
-          <ListChecks className="w-10 h-10 text-foreground/10 mx-auto mb-3" />
-          <p className="text-foreground/40 text-sm">{isAdmin ? 'Add your first task to get started' : 'No tasks in this project'}</p>
-        </div>
-      ) : (
-        <KanbanBoard 
-          initialTasks={tasks} 
-          isAdmin={isAdmin}
-          members={members}
-        />
-      )}
+      <ProjectMembers 
+        projectId={id}
+        currentMembers={projectMembers}
+        allProfiles={allProfiles}
+        isAdmin={isAdmin}
+      />
+
+      <div className="mt-10">
+        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Eye className="w-4 h-4 text-foreground/40" />
+          Task Board
+        </h2>
+        {!tasks || tasks.length === 0 ? (
+          <div className="text-center py-20 bg-card/50 backdrop-blur-xl border border-dashed border-border rounded-3xl">
+            <ListChecks className="w-10 h-10 text-foreground/10 mx-auto mb-3" />
+            <p className="text-foreground/40 text-sm">{isAdmin ? 'Add your first task to get started' : 'No tasks in this project'}</p>
+          </div>
+        ) : (
+          <KanbanBoard
+            initialTasks={tasks}
+            isAdmin={isAdmin}
+            members={projectMembers} 
+          />
+        )}
+      </div>
     </div>
   )
 }

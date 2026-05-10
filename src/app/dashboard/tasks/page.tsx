@@ -2,16 +2,14 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { KanbanBoard } from '@/components/KanbanBoard'
 
-export default async function TasksPage() {
+export default async function TaskBoardPage() {
   const supabase = await createClient()
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -21,6 +19,8 @@ export default async function TasksPage() {
 
   const isAdmin = profile?.role === 'admin'
 
+  // Admin: show ALL tasks from all projects they own
+  // Member: show tasks assigned to them
   let query = supabase
     .from('tasks')
     .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
@@ -32,29 +32,21 @@ export default async function TasksPage() {
 
   const { data: tasks } = await query
 
-  // Get members for admin edit modal
   let members: { id: string; full_name: string }[] = []
   if (isAdmin) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
+    const { data } = await supabase.from('profiles').select('id, full_name')
     members = data || []
   }
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">{isAdmin ? 'Task Board' : 'My Tasks'}</h1>
-        <p className="text-sm text-foreground/70 mt-1">
-          {isAdmin ? 'Drag and drop tasks between columns to update status' : 'Drag tasks to update their progress'}
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-foreground">{isAdmin ? 'Task Board' : 'My Tasks'}</h1>
+        <p className="text-sm text-foreground/50 mt-1">
+          {isAdmin ? 'All tasks across every project' : 'Drag tasks to update their progress'}
         </p>
       </div>
-
-      <KanbanBoard 
-        initialTasks={tasks || []} 
-        isAdmin={isAdmin} 
-        members={members}
-      />
+      <KanbanBoard initialTasks={tasks || []} isAdmin={isAdmin} members={members} />
     </div>
   )
 }

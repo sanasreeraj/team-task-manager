@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { updateTaskStatus, updateTask, deleteTask } from '@/app/dashboard/tasks/actions'
-import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Filter } from 'lucide-react'
+import { addComment, getComments } from '@/app/dashboard/tasks/comments'
+import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Send } from 'lucide-react'
 
 type Task = {
   id: string
@@ -18,9 +19,13 @@ type Task = {
   assigned?: { full_name: string } | null
 }
 
-type Member = {
+type Member = { id: string; full_name: string }
+
+type Comment = {
   id: string
-  full_name: string
+  content: string
+  created_at: string
+  profiles: { full_name: string } | null
 }
 
 const COLUMNS = [
@@ -31,74 +36,62 @@ const COLUMNS = [
 ]
 
 const PRIORITY_COLORS: Record<string, string> = {
-  urgent: 'bg-red-500/10 text-red-500 border-red-500/20',
-  high: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  medium: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  low: 'bg-green-500/10 text-green-500 border-green-500/20',
+  urgent: 'bg-red-500/10 text-red-600 border-red-500/20',
+  high: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  medium: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20',
+  low: 'bg-green-500/10 text-green-600 border-green-500/20',
 }
 
-export function KanbanBoard({ 
-  initialTasks, 
-  isAdmin,
-  members
-}: { 
-  initialTasks: Task[]
-  isAdmin: boolean
-  members?: Member[]
-}) {
+export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: Task[]; isAdmin: boolean; members?: Member[] }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [draggedTask, setDraggedTask] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+  const [comments, setComments] = useState<Comment[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [loadingComments, setLoadingComments] = useState(false)
 
-  const handleDragStart = (taskId: string) => {
-    setDraggedTask(taskId)
-  }
+  // Load comments when editing a task
+  useEffect(() => {
+    if (editingTask) {
+      setLoadingComments(true)
+      getComments(editingTask.id).then(res => {
+        setComments(res.data as Comment[])
+        setLoadingComments(false)
+      })
+    } else {
+      setComments([])
+      setNewComment('')
+    }
+  }, [editingTask?.id])
 
-  const handleDragOver = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-    setDropTarget(columnId)
-  }
-
-  const handleDragLeave = () => {
-    setDropTarget(null)
-  }
+  const handleDragStart = (taskId: string) => setDraggedTask(taskId)
+  const handleDragOver = (e: React.DragEvent, columnId: string) => { e.preventDefault(); setDropTarget(columnId) }
+  const handleDragLeave = () => setDropTarget(null)
 
   const handleDrop = async (e: React.DragEvent, columnId: string) => {
     e.preventDefault()
     setDropTarget(null)
-    
     if (!draggedTask) return
-    
     const task = tasks.find(t => t.id === draggedTask)
-    if (!task || task.status === columnId) {
-      setDraggedTask(null)
-      return
-    }
-
+    if (!task || task.status === columnId) { setDraggedTask(null); return }
     setTasks(prev => prev.map(t => t.id === draggedTask ? { ...t, status: columnId } : t))
     setDraggedTask(null)
-
     const result = await updateTaskStatus(task.id, task.project_id, columnId)
-    if (result.error) {
-      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: task.status } : t))
-    }
+    if (result.error) setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: task.status } : t))
   }
 
   const handleDeleteTask = async (taskId: string, projectId: string) => {
     if (!confirm('Delete this task?')) return
     setTasks(prev => prev.filter(t => t.id !== taskId))
     const result = await deleteTask(taskId, projectId)
-    if (result.error) {
-      setTasks(initialTasks)
-    }
+    if (result.error) setTasks(initialTasks)
   }
 
   const handleSaveEdit = async () => {
     if (!editingTask) return
-    
     const result = await updateTask(editingTask.id, editingTask.project_id, {
       title: editingTask.title,
       description: editingTask.description || '',
@@ -107,14 +100,19 @@ export function KanbanBoard({
       assigned_to: editingTask.assigned_to || null,
       due_date: editingTask.due_date || null,
     })
-
-    if (result.error) {
-      alert('Failed to save changes')
-      return
-    }
-
+    if (result.error) { alert('Failed to save'); return }
     setTasks(prev => prev.map(t => t.id === editingTask.id ? editingTask : t))
     setEditingTask(null)
+  }
+
+  const handleAddComment = async () => {
+    if (!editingTask || !newComment.trim()) return
+    const result = await addComment(editingTask.id, newComment.trim())
+    if (!result.error) {
+      setNewComment('')
+      const res = await getComments(editingTask.id)
+      setComments(res.data as Comment[])
+    }
   }
 
   const filteredTasks = tasks.filter(t => {
@@ -123,9 +121,7 @@ export function KanbanBoard({
     return matchesSearch && matchesPriority
   })
 
-  const getTasksForColumn = useCallback((columnId: string) => {
-    return filteredTasks.filter(t => t.status === columnId)
-  }, [filteredTasks])
+  const getTasksForColumn = useCallback((columnId: string) => filteredTasks.filter(t => t.status === columnId), [filteredTasks])
 
   return (
     <>
@@ -138,13 +134,13 @@ export function KanbanBoard({
             placeholder="Search tasks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-border/50 bg-card/50 text-sm text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/50 bg-card text-sm text-foreground placeholder:text-foreground/30 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
           />
         </div>
         <select
           value={filterPriority}
           onChange={(e) => setFilterPriority(e.target.value)}
-          className="rounded-xl border border-border/50 bg-card/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all appearance-none"
+          className="rounded-lg border border-border/50 bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none transition-all"
         >
           <option value="all">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -155,7 +151,7 @@ export function KanbanBoard({
       </div>
 
       {/* Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 h-[calc(100vh-260px)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 h-[calc(100vh-240px)]">
         {COLUMNS.map(column => {
           const columnTasks = getTasksForColumn(column.id)
           return (
@@ -164,49 +160,36 @@ export function KanbanBoard({
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, column.id)}
-              className={`flex flex-col rounded-2xl border transition-all duration-200 ${
-                dropTarget === column.id 
-                  ? `${column.borderColor} ${column.bgColor} scale-[1.005]` 
-                  : 'border-border/30 bg-card/20'
+              className={`flex flex-col rounded-xl border transition-all duration-200 ${
+                dropTarget === column.id ? `${column.borderColor} ${column.bgColor}` : 'border-border/40 bg-card/30'
               }`}
             >
-              {/* Column Header */}
-              <div className="px-4 py-3 border-b border-border/15 flex items-center gap-2">
+              <div className="px-3.5 py-2.5 border-b border-border/20 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${column.dotColor}`} />
                 <h3 className={`text-xs font-semibold ${column.headerColor}`}>{column.label}</h3>
-                <span className="text-[10px] font-bold bg-foreground/5 text-foreground/40 px-1.5 py-0.5 rounded-full ml-auto">
-                  {columnTasks.length}
-                </span>
+                <span className="text-[10px] font-bold bg-foreground/5 text-foreground/40 px-1.5 py-0.5 rounded ml-auto">{columnTasks.length}</span>
               </div>
 
-              {/* Cards */}
               <div className="flex-1 overflow-y-auto p-2 space-y-2">
                 {columnTasks.map(task => (
                   <div
                     key={task.id}
                     draggable
                     onDragStart={() => handleDragStart(task.id)}
-                    className={`group rounded-xl bg-card/90 backdrop-blur-sm border border-border/40 p-3.5 shadow-sm cursor-grab active:cursor-grabbing transition-all hover:shadow-md hover:border-primary/15 ${
+                    className={`group rounded-lg bg-card border border-border/40 p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm hover:border-primary/20 ${
                       draggedTask === task.id ? 'opacity-30 scale-95' : ''
                     }`}
                   >
-                    {/* Priority & Actions */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium}`}>
                         {task.priority}
                       </span>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => setEditingTask(task)}
-                          className="p-1 rounded-lg text-foreground/25 hover:text-primary hover:bg-primary/10 transition-all"
-                        >
+                        <button onClick={() => setEditingTask(task)} className="p-1 rounded text-foreground/25 hover:text-primary hover:bg-primary/10 transition-all">
                           <Pencil className="w-3 h-3" />
                         </button>
                         {isAdmin && (
-                          <button
-                            onClick={() => handleDeleteTask(task.id, task.project_id)}
-                            className="p-1 rounded-lg text-foreground/25 hover:text-red-500 hover:bg-red-500/10 transition-all"
-                          >
+                          <button onClick={() => handleDeleteTask(task.id, task.project_id)} className="p-1 rounded text-foreground/25 hover:text-red-500 hover:bg-red-500/10 transition-all">
                             <Trash2 className="w-3 h-3" />
                           </button>
                         )}
@@ -214,28 +197,24 @@ export function KanbanBoard({
                       </div>
                     </div>
 
-                    <h4 className="text-sm font-medium text-foreground line-clamp-2 leading-snug">{task.title}</h4>
-                    
-                    {task.description && (
-                      <p className="mt-1 text-[11px] text-foreground/45 line-clamp-2 leading-relaxed">{task.description}</p>
-                    )}
+                    <h4 className="text-[13px] font-medium text-foreground leading-snug line-clamp-2">{task.title}</h4>
+                    {task.description && <p className="mt-1 text-[11px] text-foreground/50 line-clamp-2">{task.description}</p>}
 
                     {task.feedback && (
-                      <div className="mt-2 flex items-center gap-1 text-[9px] text-purple-500/70">
+                      <div className="mt-1.5 flex items-center gap-1 text-[9px] text-purple-500/70">
                         <MessageSquare className="w-2.5 h-2.5" />
                         <span>Feedback</span>
                       </div>
                     )}
 
-                    {/* Footer */}
-                    <div className="mt-3 pt-2.5 border-t border-border/20 space-y-1">
+                    <div className="mt-2.5 pt-2 border-t border-border/20 space-y-1">
                       {task.projects?.name && (
-                        <div className="flex items-center gap-1 text-[10px] text-foreground/35">
+                        <div className="flex items-center gap-1 text-[10px] text-foreground/40">
                           <FolderKanban className="w-2.5 h-2.5" />
                           <span className="truncate">{task.projects.name}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-[10px] text-foreground/35">
+                      <div className="flex items-center justify-between text-[10px] text-foreground/40">
                         <span className="truncate">{task.assigned?.full_name || 'Unassigned'}</span>
                         {task.due_date && (
                           <span className={`flex items-center gap-0.5 shrink-0 ${task.due_date < new Date().toISOString().split('T')[0] && task.status !== 'done' ? 'text-red-500 font-semibold' : ''}`}>
@@ -247,9 +226,8 @@ export function KanbanBoard({
                     </div>
                   </div>
                 ))}
-
                 {columnTasks.length === 0 && (
-                  <div className="flex items-center justify-center h-20 text-[10px] text-foreground/20 border border-dashed border-border/15 rounded-xl">
+                  <div className="flex items-center justify-center h-20 text-[10px] text-foreground/20 border border-dashed border-border/20 rounded-lg">
                     Drop tasks here
                   </div>
                 )}
@@ -259,106 +237,112 @@ export function KanbanBoard({
         })}
       </div>
 
-      {/* Edit Task Modal */}
+      {/* Edit Task Modal with Comments */}
       {editingTask && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingTask(null)}>
-          <div className="bg-card rounded-3xl border border-border/50 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-border/20">
-              <h2 className="text-base font-semibold text-foreground">Edit Task</h2>
+          <div className="bg-card rounded-2xl border border-border/50 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 shrink-0">
+              <h2 className="text-sm font-bold text-foreground">Edit Task</h2>
               <button onClick={() => setEditingTask(null)} className="p-1.5 rounded-lg hover:bg-foreground/5 transition-all">
                 <X className="w-4 h-4 text-foreground/40" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-foreground/50 mb-1.5">Title</label>
-                <input
-                  value={editingTask.title}
-                  onChange={e => setEditingTask({...editingTask, title: e.target.value})}
-                  className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-foreground/50 mb-1.5">Description</label>
-                <textarea
-                  rows={3}
-                  value={editingTask.description || ''}
-                  onChange={e => setEditingTask({...editingTask, description: e.target.value})}
-                  className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-foreground/50 mb-1.5">Priority</label>
-                  <select
-                    value={editingTask.priority}
-                    onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
-                    className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all appearance-none"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr,280px] divide-x divide-border/20">
+                {/* Left: Task Details */}
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/50 mb-1">Title</label>
+                    <input
+                      value={editingTask.title}
+                      onChange={e => setEditingTask({...editingTask, title: e.target.value})}
+                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground/50 mb-1">Description</label>
+                    <textarea rows={3} value={editingTask.description || ''} onChange={e => setEditingTask({...editingTask, description: e.target.value})}
+                      className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-foreground/50 mb-1">Priority</label>
+                      <select value={editingTask.priority} onChange={e => setEditingTask({...editingTask, priority: e.target.value})}
+                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-foreground/50 mb-1">Due Date</label>
+                      <input type="date" value={editingTask.due_date || ''} onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
+                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none" />
+                    </div>
+                  </div>
+                  {isAdmin && members && (
+                    <div>
+                      <label className="block text-xs font-medium text-foreground/50 mb-1">Assign To</label>
+                      <select value={editingTask.assigned_to || ''} onChange={e => setEditingTask({...editingTask, assigned_to: e.target.value || null})}
+                        className="w-full rounded-lg border border-border bg-background py-2 px-3 text-sm text-foreground focus:border-primary focus:outline-none">
+                        <option value="">Unassigned</option>
+                        {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-foreground/50 mb-1.5">Due Date</label>
-                  <input
-                    type="date"
-                    value={editingTask.due_date || ''}
-                    onChange={e => setEditingTask({...editingTask, due_date: e.target.value || null})}
-                    className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                  />
-                </div>
-              </div>
 
-              {isAdmin && members && (
-                <div>
-                  <label className="block text-xs font-medium text-foreground/50 mb-1.5">Assign To</label>
-                  <select
-                    value={editingTask.assigned_to || ''}
-                    onChange={e => setEditingTask({...editingTask, assigned_to: e.target.value || null})}
-                    className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all appearance-none"
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map(m => (
-                      <option key={m.id} value={m.id}>{m.full_name}</option>
-                    ))}
-                  </select>
+                {/* Right: Comments/Feedback Log */}
+                <div className="flex flex-col bg-foreground/[0.01]">
+                  <div className="px-4 py-3 border-b border-border/20">
+                    <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5" /> Feedback
+                    </h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[300px] min-h-[200px]">
+                    {loadingComments ? (
+                      <p className="text-xs text-foreground/30 text-center py-8">Loading...</p>
+                    ) : comments.length === 0 ? (
+                      <p className="text-xs text-foreground/30 text-center py-8">No feedback yet</p>
+                    ) : (
+                      comments.map(c => (
+                        <div key={c.id} className="rounded-lg bg-card border border-border/30 p-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-semibold text-foreground/70">{c.profiles?.full_name || 'Unknown'}</span>
+                            <span className="text-[9px] text-foreground/30">{new Date(c.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          <p className="text-xs text-foreground/60 leading-relaxed">{c.content}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="p-3 border-t border-border/20">
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={newComment}
+                        onChange={e => setNewComment(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddComment()}
+                        placeholder="Add feedback..."
+                        className="flex-1 rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-foreground placeholder:text-foreground/25 focus:border-primary focus:outline-none"
+                      />
+                      <button onClick={handleAddComment} disabled={!newComment.trim()} className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all">
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-medium text-foreground/50 mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Feedback / Notes
-                  </span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={editingTask.feedback || ''}
-                  onChange={e => setEditingTask({...editingTask, feedback: e.target.value})}
-                  placeholder="Add feedback, review comments, or notes..."
-                  className="w-full rounded-xl border border-border bg-background py-2.5 px-3.5 text-foreground text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all placeholder:text-foreground/25"
-                />
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-6 border-t border-border/20">
-              <button
-                onClick={handleSaveEdit}
-                className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95"
-              >
+            {/* Footer */}
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-border/30 shrink-0">
+              <button onClick={handleSaveEdit} className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
                 Save Changes
               </button>
-              <button
-                onClick={() => setEditingTask(null)}
-                className="flex-1 rounded-xl border border-border bg-card/50 px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-card transition-all active:scale-95"
-              >
+              <button onClick={() => setEditingTask(null)} className="flex-1 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-foreground/[0.02] transition-all active:scale-[0.98]">
                 Cancel
               </button>
             </div>
