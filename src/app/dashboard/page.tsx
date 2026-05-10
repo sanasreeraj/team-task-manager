@@ -20,6 +20,41 @@ export default async function DashboardPage() {
 
   const isAdmin = profile?.role === 'admin'
 
+  // Fetch Stats
+  let projectCount = 0
+  let taskCount = 0
+  let pendingTasks = 0
+
+  if (isAdmin) {
+    // Admin stats
+    const { count: pCount } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('created_by', user.id)
+    
+    const { count: tCount } = await supabase
+      .from('tasks')
+      .select('*, projects!inner(*)', { count: 'exact', head: true })
+      .eq('projects.created_by', user.id)
+
+    projectCount = pCount || 0
+    taskCount = tCount || 0
+  } else {
+    // Member stats
+    const { count: tCount } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('assigned_to', user.id)
+    
+    const { count: pCount } = await supabase
+      .from('tasks')
+      .select('project_id', { count: 'exact', head: true })
+      .eq('assigned_to', user.id)
+
+    taskCount = tCount || 0
+    projectCount = pCount || 0 // Rough estimate of projects they have tasks in
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -35,26 +70,26 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           <div className="rounded-2xl bg-primary/5 backdrop-blur-xl border border-primary/20 p-6 shadow-sm transition-all hover:shadow-md">
             <p className="text-sm font-medium text-primary">Team Projects</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground">0</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground">{projectCount}</p>
           </div>
           <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm font-medium text-foreground/70">Team Members</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground">0</p>
+            <p className="text-sm font-medium text-foreground/70">Total Team Tasks</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground">{taskCount}</p>
           </div>
           <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm font-medium text-foreground/70">All Pending Tasks</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground">0</p>
+            <p className="text-sm font-medium text-foreground/70">Team Performance</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground">--</p>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           <div className="rounded-2xl bg-primary/5 backdrop-blur-xl border border-primary/20 p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm font-medium text-primary">My Assigned Tasks</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground">0</p>
+            <p className="text-sm font-medium text-primary">Assigned Tasks</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground">{taskCount}</p>
           </div>
           <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm font-medium text-foreground/70">Completed Tasks</p>
-            <p className="mt-2 text-3xl font-semibold text-foreground">0</p>
+            <p className="text-sm font-medium text-foreground/70">Active Projects</p>
+            <p className="mt-2 text-3xl font-semibold text-foreground">{projectCount}</p>
           </div>
           <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md">
             <p className="text-sm font-medium text-foreground/70">Upcoming Deadlines</p>

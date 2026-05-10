@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderKanban, CheckSquare, LogOut, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useTheme } from 'next-themes'
@@ -12,18 +12,24 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
-  { name: 'My Tasks', href: '/dashboard/tasks', icon: CheckSquare },
-]
-
-export function Sidebar({ logoutAction }: { logoutAction: () => void }) {
+export function Sidebar({ logoutAction, role }: { logoutAction: () => void, role: string }) {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
+
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
+    { name: 'My Tasks', href: '/dashboard/tasks', icon: CheckSquare },
+  ]
+
+  if (role === 'admin') {
+    navigation.push({ name: 'Team', href: '/dashboard/team', icon: Users })
+  }
+
+  navigation.push({ name: 'Settings', href: '/dashboard/settings', icon: Settings })
 
   return (
     <div className="flex h-full w-64 flex-col bg-card/80 backdrop-blur-xl border-r border-border/50 shadow-sm transition-colors duration-300">
@@ -42,8 +48,8 @@ export function Sidebar({ logoutAction }: { logoutAction: () => void }) {
                       href={item.href}
                       className={cn(
                         isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5',
+                           ? 'bg-primary/10 text-primary'
+                           : 'text-foreground/70 hover:text-foreground hover:bg-foreground/5',
                         'group flex gap-x-3 rounded-xl p-2 text-sm leading-6 font-medium transition-all active:scale-[0.98]'
                       )}
                     >
