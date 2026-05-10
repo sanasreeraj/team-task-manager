@@ -62,7 +62,9 @@ CREATE TABLE public.tasks (
   project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  status TEXT DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'done')),
+  status TEXT DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'code_review', 'done')),
+  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+  feedback TEXT,
   assigned_to UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   due_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()

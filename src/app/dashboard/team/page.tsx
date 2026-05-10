@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { User, Phone, Mail } from 'lucide-react'
+import { DeleteMemberButton } from '@/components/DeleteMemberButton'
 
 export default async function TeamPage() {
   const supabase = await createClient()
@@ -43,19 +44,24 @@ export default async function TeamPage() {
             key={member.id}
             className="group rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md"
           >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">{member.full_name}</h3>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                    member.role === 'admin' ? "bg-purple-500/10 text-purple-500" : "bg-blue-500/10 text-blue-500"
+                  )}>
+                    {member.role}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">{member.full_name}</h3>
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                  member.role === 'admin' ? "bg-purple-500/10 text-purple-500" : "bg-blue-500/10 text-blue-500"
-                )}>
-                  {member.role}
-                </span>
-              </div>
+              {member.id !== user.id && (
+                <DeleteMemberButton memberId={member.id} memberName={member.full_name} />
+              )}
             </div>
             
             <div className="space-y-3 pt-4 border-t border-border/50">

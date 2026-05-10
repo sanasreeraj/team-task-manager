@@ -1,8 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, ChevronLeft, Calendar, User } from 'lucide-react'
-import { TaskStatusSelect } from '@/components/TaskStatusSelect'
+import { Plus, ChevronLeft } from 'lucide-react'
+import { KanbanBoard } from '@/components/KanbanBoard'
 
 export default async function ProjectDetailsPage({
   params,
@@ -40,13 +40,22 @@ export default async function ProjectDetailsPage({
 
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('*, assigned:profiles!tasks_assigned_to_fkey(full_name)')
+    .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
     .eq('project_id', id)
     .order('created_at', { ascending: false })
 
+  // Get members for admin edit modal
+  let members: { id: string; full_name: string }[] = []
+  if (isAdmin) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+    members = data || []
+  }
+
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <Link
           href="/dashboard/projects"
           className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-primary transition-colors mb-4"
@@ -73,51 +82,17 @@ export default async function ProjectDetailsPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {!tasks || tasks.length === 0 ? (
-          <div className="text-center py-20 bg-card/50 backdrop-blur-xl border border-dashed border-border rounded-3xl">
-            <p className="text-foreground/50">No tasks found in this project. {isAdmin ? 'Add a task to get started!' : ''}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className="group rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-6 shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <TaskStatusSelect 
-                    taskId={task.id} 
-                    projectId={id} 
-                    initialStatus={task.status} 
-                  />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                  {task.title}
-                </h3>
-                <p className="mt-2 text-sm text-foreground/70 line-clamp-2">
-                  {task.description || 'No description.'}
-                </p>
-                
-                <div className="mt-6 pt-6 border-t border-border/50 space-y-3">
-                  <div className="flex items-center gap-2 text-xs text-foreground/60">
-                    <User className="w-3.5 h-3.5" />
-                    <span>Assigned to: <span className="font-medium text-foreground/80">{task.assigned?.full_name || 'Unassigned'}</span></span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-foreground/60">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>Due: <span className="font-medium text-foreground/80">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</span></span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {!tasks || tasks.length === 0 ? (
+        <div className="text-center py-20 bg-card/50 backdrop-blur-xl border border-dashed border-border rounded-3xl">
+          <p className="text-foreground/50">No tasks found in this project. {isAdmin ? 'Add a task to get started!' : ''}</p>
+        </div>
+      ) : (
+        <KanbanBoard 
+          initialTasks={tasks} 
+          isAdmin={isAdmin}
+          members={members}
+        />
+      )}
     </div>
   )
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ')
 }

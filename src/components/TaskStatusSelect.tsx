@@ -26,19 +26,25 @@ export function TaskStatusSelect({
     setLoading(false)
   }
 
+  const statusColor = (s: string) => {
+    switch (s) {
+      case 'done': return "bg-green-500/10 text-green-500"
+      case 'in_progress': return "bg-blue-500/10 text-blue-500"
+      case 'code_review': return "bg-purple-500/10 text-purple-500"
+      default: return "bg-orange-500/10 text-orange-500"
+    }
+  }
+
   return (
     <select
       value={status}
       disabled={loading}
       onChange={(e) => handleChange(e.target.value)}
-      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border-0 focus:ring-2 focus:ring-primary cursor-pointer transition-all appearance-none ${
-        status === 'done' ? "bg-green-500/10 text-green-500" :
-        status === 'in_progress' ? "bg-blue-500/10 text-blue-500" :
-        "bg-orange-500/10 text-orange-500"
-      }`}
+      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border-0 focus:ring-2 focus:ring-primary cursor-pointer transition-all appearance-none ${statusColor(status)}`}
     >
       <option value="todo">To Do</option>
       <option value="in_progress">In Progress</option>
+      <option value="code_review">Code Review</option>
       <option value="done">Done</option>
     </select>
   )

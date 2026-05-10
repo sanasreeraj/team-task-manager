@@ -22,10 +22,22 @@ export default async function ProjectsPage() {
 
   const isAdmin = profile?.role === 'admin'
 
-  const { data: projects } = await supabase
+  let query = supabase
     .from('projects')
     .select('*, profiles(full_name)')
-    .order('created_at', { ascending: false })
+
+  if (!isAdmin) {
+    // If member, only show projects where they have at least one task assigned
+    const { data: memberTasks } = await supabase
+      .from('tasks')
+      .select('project_id')
+      .eq('assigned_to', user.id)
+    
+    const projectIds = Array.from(new Set(memberTasks?.map(t => t.project_id)))
+    query = query.in('id', projectIds)
+  }
+
+  const { data: projects } = await query.order('created_at', { ascending: false })
 
   return (
     <div>

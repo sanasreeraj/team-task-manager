@@ -49,6 +49,7 @@ export default async function NewTaskPage({
     const description = formData.get('description') as string
     const assigned_to = formData.get('assigned_to') as string
     const due_date = formData.get('due_date') as string
+    const priority = formData.get('priority') as string
 
     const { error } = await supabase.from('tasks').insert({
       project_id: id,
@@ -56,6 +57,7 @@ export default async function NewTaskPage({
       description,
       assigned_to: assigned_to || null,
       due_date: due_date || null,
+      priority: priority || 'medium',
       status: 'todo'
     })
 
@@ -128,16 +130,31 @@ export default async function NewTaskPage({
               </select>
             </div>
             <div>
-              <label htmlFor="due_date" className="block text-sm font-medium text-foreground/90 mb-1.5">
-                Due Date
+              <label htmlFor="priority" className="block text-sm font-medium text-foreground/90 mb-1.5">
+                Priority
               </label>
-              <input
-                id="due_date"
-                name="due_date"
-                type="date"
-                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm"
-              />
+              <select
+                id="priority"
+                name="priority"
+                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
+              >
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
             </div>
+          </div>
+          <div>
+            <label htmlFor="due_date" className="block text-sm font-medium text-foreground/90 mb-1.5">
+              Due Date
+            </label>
+            <input
+              id="due_date"
+              name="due_date"
+              type="date"
+              className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm"
+            />
           </div>
         </div>
 
