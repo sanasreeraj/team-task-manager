@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FolderKanban, CheckSquare, Users, ClipboardList, LogOut } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { useEffect, useState } from 'react'
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

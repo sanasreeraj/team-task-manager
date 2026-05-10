@@ -6,10 +6,13 @@ import { ChevronLeft } from 'lucide-react'
 
 export default async function NewTaskPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const { id } = await params
+  const { error: pageError } = await searchParams
   const supabase = await createClient()
 
   const {
@@ -36,34 +39,38 @@ export default async function NewTaskPage({
     .eq('id', id)
     .single()
 
+  // Fetch ALL profiles (not just members — admins should be assignable too)
   const { data: members } = await supabase
     .from('profiles')
     .select('id, full_name')
-    .eq('role', 'member')
 
   async function createTask(formData: FormData) {
     'use server'
     const supabase = await createClient()
     
-    const title = formData.get('title') as string
-    const description = formData.get('description') as string
+    const title = (formData.get('title') as string)?.trim()
+    const description = (formData.get('description') as string)?.trim()
     const assigned_to = formData.get('assigned_to') as string
     const due_date = formData.get('due_date') as string
     const priority = formData.get('priority') as string
+    const status = formData.get('status') as string
+
+    if (!title || title.length < 1) {
+      redirect(`/dashboard/projects/${id}/tasks/new?error=${encodeURIComponent('Task title is required')}`)
+    }
 
     const { error } = await supabase.from('tasks').insert({
       project_id: id,
       title,
-      description,
+      description: description || null,
       assigned_to: assigned_to || null,
       due_date: due_date || null,
       priority: priority || 'medium',
-      status: 'todo'
+      status: status || 'todo'
     })
 
     if (error) {
-      console.error(error)
-      return
+      redirect(`/dashboard/projects/${id}/tasks/new?error=${encodeURIComponent(error.message)}`)
     }
 
     revalidatePath(`/dashboard/projects/${id}`)
@@ -85,6 +92,12 @@ export default async function NewTaskPage({
           Assign a new task to your team member
         </p>
       </div>
+
+      {pageError && (
+        <div className="rounded-xl bg-red-500/10 p-4 border border-red-500/20 mb-6">
+          <p className="text-sm text-red-500">{pageError}</p>
+        </div>
+      )}
 
       <form action={createTask} className="space-y-6">
         <div className="space-y-4">
@@ -136,25 +149,44 @@ export default async function NewTaskPage({
               <select
                 id="priority"
                 name="priority"
+                defaultValue="medium"
                 className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
               >
                 <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
+                <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
             </div>
           </div>
-          <div>
-            <label htmlFor="due_date" className="block text-sm font-medium text-foreground/90 mb-1.5">
-              Due Date
-            </label>
-            <input
-              id="due_date"
-              name="due_date"
-              type="date"
-              className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-foreground/90 mb-1.5">
+                Initial Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                defaultValue="todo"
+                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm appearance-none"
+              >
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="code_review">Code Review</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="due_date" className="block text-sm font-medium text-foreground/90 mb-1.5">
+                Due Date
+              </label>
+              <input
+                id="due_date"
+                name="due_date"
+                type="date"
+                className="block w-full rounded-xl border border-border bg-background py-3 px-4 text-foreground shadow-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all sm:text-sm"
+              />
+            </div>
           </div>
         </div>
 

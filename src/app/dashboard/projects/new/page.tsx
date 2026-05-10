@@ -2,7 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export default async function NewProjectPage() {
+export default async function NewProjectPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error: pageError } = await searchParams
   const supabase = await createClient()
 
   const {
@@ -31,18 +36,21 @@ export default async function NewProjectPage() {
 
     if (!user) return
 
-    const name = formData.get('name') as string
-    const description = formData.get('description') as string
+    const name = (formData.get('name') as string)?.trim()
+    const description = (formData.get('description') as string)?.trim()
+
+    if (!name || name.length < 1) {
+      redirect('/dashboard/projects/new?error=' + encodeURIComponent('Project name is required'))
+    }
 
     const { error } = await supabase.from('projects').insert({
       name,
-      description,
+      description: description || null,
       created_by: user.id,
     })
 
     if (error) {
-      console.error(error)
-      return
+      redirect('/dashboard/projects/new?error=' + encodeURIComponent(error.message))
     }
 
     revalidatePath('/dashboard/projects')
@@ -57,6 +65,12 @@ export default async function NewProjectPage() {
           Start a new project and organize your team tasks
         </p>
       </div>
+
+      {pageError && (
+        <div className="rounded-xl bg-red-500/10 p-4 border border-red-500/20 mb-6">
+          <p className="text-sm text-red-500">{pageError}</p>
+        </div>
+      )}
 
       <form action={createProject} className="space-y-6">
         <div className="space-y-4">

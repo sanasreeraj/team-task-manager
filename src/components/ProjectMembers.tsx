@@ -3,13 +3,7 @@
 import { useState } from 'react'
 import { addProjectMember, removeProjectMember } from '@/app/dashboard/projects/[id]/member-actions'
 import { UserPlus, X, Users } from 'lucide-react'
-
-type Profile = {
-  id: string
-  full_name: string
-  role: string
-  designation: string
-}
+import toast from 'react-hot-toast'
 
 export function ProjectMembers({ 
   projectId, 
@@ -28,15 +22,28 @@ export function ProjectMembers({
   const handleAdd = async (userId: string) => {
     setLoading(userId)
     const result = await addProjectMember(projectId, userId)
-    if (result.error) alert(result.error)
+    if (result.error) toast.error(result.error)
+    else toast.success('Member added to project')
     setLoading(null)
   }
 
-  const handleRemove = async (userId: string) => {
-    if (!confirm('Remove this member from the project?')) return
+  const handleRemove = async (userId: string, name: string) => {
+    toast((t) => (
+      <div className="flex items-center gap-3">
+        <span className="text-sm">Remove {name}?</span>
+        <div className="flex gap-1">
+          <button onClick={() => { toast.dismiss(t.id); performRemove(userId) }} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium">Remove</button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium">Cancel</button>
+        </div>
+      </div>
+    ), { duration: 10000 })
+  }
+
+  const performRemove = async (userId: string) => {
     setLoading(userId)
     const result = await removeProjectMember(projectId, userId)
-    if (result.error) alert(result.error)
+    if (result.error) toast.error(result.error)
+    else toast.success('Member removed from project')
     setLoading(null)
   }
 
@@ -111,7 +118,7 @@ export function ProjectMembers({
             </div>
             {isAdmin && (
               <button
-                onClick={() => handleRemove(member.id)}
+                onClick={() => handleRemove(member.id, member.full_name)}
                 disabled={loading === member.id}
                 className="p-1.5 rounded-lg text-foreground/20 hover:text-red-500 hover:bg-red-500/10 disabled:opacity-50 transition-all"
               >

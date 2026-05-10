@@ -3,17 +3,28 @@
 import { deleteProject } from '@/app/dashboard/projects/actions'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 export function DeleteProjectButton({ projectId, projectName }: { projectId: string, projectName: string }) {
   const [loading, setLoading] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm(`Delete "${projectName}" and all its tasks? This cannot be undone.`)) return
-    
+    toast((t) => (
+      <div className="flex items-center gap-3">
+        <span className="text-sm">Delete &quot;{projectName}&quot; and all tasks?</span>
+        <div className="flex gap-1">
+          <button onClick={() => { toast.dismiss(t.id); performDelete() }} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium">Delete</button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium">Cancel</button>
+        </div>
+      </div>
+    ), { duration: 10000 })
+  }
+
+  const performDelete = async () => {
     setLoading(true)
     const result = await deleteProject(projectId)
     if (result?.error) {
-      alert('Failed to delete project: ' + result.error)
+      toast.error('Failed: ' + result.error)
       setLoading(false)
     }
   }

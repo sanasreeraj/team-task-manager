@@ -32,8 +32,9 @@ export default async function DashboardPage() {
   let completedTasks = 0
   let pendingTasks = 0
   let overdueTasks = 0
-  let overdueTuaskList: any[] = []
+  let overdueTaskList: any[] = []
   let recentTasks: any[] = []
+  let statusCounts = { todo: 0, in_progress: 0, code_review: 0, done: 0 }
 
   const now = new Date().toISOString().split('T')[0]
 
@@ -54,7 +55,12 @@ export default async function DashboardPage() {
     pendingTasks = allTasks?.filter(t => t.status !== 'done').length || 0
     overdueTasks = allTasks?.filter(t => t.status !== 'done' && t.due_date && t.due_date < now).length || 0
     
-    overdueTuaskList = (allTasks || [])
+    // Status distribution
+    allTasks?.forEach(t => {
+      if (t.status in statusCounts) statusCounts[t.status as keyof typeof statusCounts]++
+    })
+
+    overdueTaskList = (allTasks || [])
       .filter(t => t.status !== 'done' && t.due_date && t.due_date < now)
       .sort((a, b) => a.due_date!.localeCompare(b.due_date!))
       .slice(0, 5)
@@ -74,7 +80,11 @@ export default async function DashboardPage() {
     overdueTasks = myTasks?.filter(t => t.status !== 'done' && t.due_date && t.due_date < now).length || 0
     projectCount = new Set(myTasks?.map(t => t.project_id)).size
 
-    overdueTuaskList = (myTasks || [])
+    myTasks?.forEach(t => {
+      if (t.status in statusCounts) statusCounts[t.status as keyof typeof statusCounts]++
+    })
+
+    overdueTaskList = (myTasks || [])
       .filter(t => t.status !== 'done' && t.due_date && t.due_date < now)
       .sort((a, b) => a.due_date!.localeCompare(b.due_date!))
       .slice(0, 5)
@@ -105,6 +115,14 @@ export default async function DashboardPage() {
     }
     return colors[s] || colors.todo
   }
+
+  // Chart data
+  const chartItems = [
+    { label: 'To Do', count: statusCounts.todo, color: '#f97316' },
+    { label: 'In Progress', count: statusCounts.in_progress, color: '#3b82f6' },
+    { label: 'Code Review', count: statusCounts.code_review, color: '#a855f7' },
+    { label: 'Done', count: statusCounts.done, color: '#22c55e' },
+  ]
 
   return (
     <div>
@@ -157,18 +175,39 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Bar + Status Distribution */}
       {taskCount > 0 && (
-        <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-5 shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-foreground/70">Overall Completion</p>
-            <p className="text-sm font-semibold text-foreground">{completionPercent}%</p>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-4 mb-8">
+          <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-foreground/70">Overall Completion</p>
+              <p className="text-sm font-semibold text-foreground">{completionPercent}%</p>
+            </div>
+            <div className="w-full h-2 bg-foreground/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-500"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
           </div>
-          <div className="w-full h-2 bg-foreground/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${completionPercent}%` }}
-            />
+
+          {/* Status Distribution Bar Chart */}
+          <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 p-5 shadow-sm">
+            <p className="text-xs font-semibold text-foreground/50 mb-3">Task Distribution</p>
+            <div className="space-y-2">
+              {chartItems.map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <span className="text-[10px] text-foreground/40 w-20 shrink-0 truncate">{item.label}</span>
+                  <div className="flex-1 h-2 bg-foreground/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${taskCount > 0 ? (item.count / taskCount) * 100 : 0}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold text-foreground/40 w-5 text-right">{item.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -184,14 +223,14 @@ export default async function DashboardPage() {
             </Link>
           </div>
           <div className="divide-y divide-border/20">
-            {overdueTuaskList.length === 0 ? (
+            {overdueTaskList.length === 0 ? (
               <div className="px-5 py-10 text-center">
                 <CheckCircle2 className="w-8 h-8 text-green-500/30 mx-auto mb-2" />
                 <p className="text-sm text-foreground/40">No overdue tasks — great job!</p>
               </div>
             ) : (
-              overdueTuaskList.map(task => (
-                <div key={task.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors">
+              overdueTaskList.map(task => (
+                <Link key={task.id} href={`/dashboard/projects/${task.project_id}`} className="px-5 py-3.5 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors block">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
                     <p className="text-[10px] text-foreground/40 mt-0.5">{task.projects?.name}</p>
@@ -205,7 +244,7 @@ export default async function DashboardPage() {
                       {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
@@ -227,7 +266,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               recentTasks.map(task => (
-                <div key={task.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors">
+                <Link key={task.id} href={`/dashboard/projects/${task.project_id}`} className="px-5 py-3.5 flex items-center justify-between hover:bg-foreground/[0.02] transition-colors block">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{task.title}</p>
                     <p className="text-[10px] text-foreground/40 mt-0.5">{task.projects?.name}</p>
@@ -235,7 +274,7 @@ export default async function DashboardPage() {
                   <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ml-3 ${statusLabel(task.status)}`}>
                     {task.status.replace('_', ' ')}
                   </span>
-                </div>
+                </Link>
               ))
             )}
           </div>

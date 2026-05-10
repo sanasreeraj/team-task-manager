@@ -3,6 +3,7 @@
 import { updateMemberDesignation, deleteMember } from '@/app/dashboard/team/actions'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 const PRESET_DESIGNATIONS = ['Member', 'Developer', 'Designer', 'Tester', 'Manager', 'Team Lead', 'DevOps', 'Analyst']
 
@@ -18,14 +19,23 @@ export function DesignationSelect({ memberId, currentDesignation }: { memberId: 
     }
     setLoading(true)
     setValue(newVal)
-    await updateMemberDesignation(memberId, newVal)
+    const result = await updateMemberDesignation(memberId, newVal)
+    if (result.error) toast.error(result.error)
+    else toast.success('Designation updated')
     setLoading(false)
   }
 
   const handleCustomSubmit = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && value.trim()) {
+      // Validate length
+      if (value.trim().length > 30) {
+        toast.error('Designation must be 30 characters or less')
+        return
+      }
       setLoading(true)
-      await updateMemberDesignation(memberId, value.trim())
+      const result = await updateMemberDesignation(memberId, value.trim())
+      if (result.error) toast.error(result.error)
+      else toast.success('Designation updated')
       setLoading(false)
     }
   }
@@ -34,11 +44,12 @@ export function DesignationSelect({ memberId, currentDesignation }: { memberId: 
     return (
       <input
         value={value}
-        onChange={e => setValue(e.target.value)}
+        onChange={e => setValue(e.target.value.slice(0, 30))}
         onKeyDown={handleCustomSubmit}
         onBlur={() => { if (!value.trim()) { setIsCustom(false); setValue('Member') } }}
         placeholder="Type role..."
         disabled={loading}
+        maxLength={30}
         className="w-32 rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-primary focus:outline-none"
         autoFocus
       />
@@ -64,10 +75,26 @@ export function RemoveMemberButton({ memberId, memberName, isSelf }: { memberId:
   if (isSelf) return null
 
   const handleDelete = async () => {
-    if (!confirm(`Remove ${memberName} from the team?`)) return
+    toast((t) => (
+      <div className="flex items-center gap-3">
+        <span className="text-sm">Remove {memberName}?</span>
+        <div className="flex gap-1">
+          <button onClick={() => { toast.dismiss(t.id); performDelete() }} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium">Remove</button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium">Cancel</button>
+        </div>
+      </div>
+    ), { duration: 10000 })
+  }
+
+  const performDelete = async () => {
     setLoading(true)
     const result = await deleteMember(memberId)
-    if (result.error) { alert('Failed: ' + result.error); setLoading(false) }
+    if (result.error) {
+      toast.error('Failed: ' + result.error)
+      setLoading(false)
+    } else {
+      toast.success('Member removed')
+    }
   }
 
   return (

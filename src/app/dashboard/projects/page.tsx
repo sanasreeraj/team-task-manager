@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, ListChecks, CheckCircle2 } from 'lucide-react'
+import { Plus, ListChecks, CheckCircle2, Users } from 'lucide-react'
 
 export default async function ProjectsPage() {
   const supabase = await createClient()
@@ -56,6 +56,7 @@ export default async function ProjectsPage() {
   // Fetch task counts per project
   const projectIds = projects?.map(p => p.id) || []
   let taskCounts: Record<string, { total: number; done: number }> = {}
+  let memberCounts: Record<string, number> = {}
   
   if (projectIds.length > 0) {
     const { data: allTasks } = await supabase
@@ -67,6 +68,16 @@ export default async function ProjectsPage() {
       if (!taskCounts[t.project_id]) taskCounts[t.project_id] = { total: 0, done: 0 }
       taskCounts[t.project_id].total++
       if (t.status === 'done') taskCounts[t.project_id].done++
+    })
+
+    // Fetch member counts per project
+    const { data: allMembers } = await supabase
+      .from('project_members')
+      .select('project_id')
+      .in('project_id', projectIds)
+    
+    allMembers?.forEach(m => {
+      memberCounts[m.project_id] = (memberCounts[m.project_id] || 0) + 1
     })
   }
 
@@ -98,6 +109,7 @@ export default async function ProjectsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => {
             const counts = taskCounts[project.id] || { total: 0, done: 0 }
+            const mCount = memberCounts[project.id] || 0
             const pct = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0
 
             return (
@@ -113,7 +125,7 @@ export default async function ProjectsPage() {
                   {project.description || 'No description provided.'}
                 </p>
                 
-                {/* Task stats */}
+                {/* Task + member stats */}
                 <div className="mt-5 flex items-center gap-4 text-[10px] text-foreground/40">
                   <span className="flex items-center gap-1">
                     <ListChecks className="w-3 h-3" />
@@ -122,6 +134,10 @@ export default async function ProjectsPage() {
                   <span className="flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3 text-green-500/60" />
                     {counts.done} done
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {mCount} members
                   </span>
                 </div>
 

@@ -1,10 +1,11 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, ChevronLeft, ListChecks, CheckCircle2, Clock, Eye } from 'lucide-react'
+import { Plus, ChevronLeft, ListChecks, Eye } from 'lucide-react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { DeleteProjectButton } from '@/components/DeleteProjectButton'
 import { ProjectMembers } from '@/components/ProjectMembers'
+import { EditableProjectHeader } from '@/components/EditableProjectHeader'
 import { getProjectMembers } from './member-actions'
 
 export default async function ProjectDetailsPage({
@@ -64,6 +65,12 @@ export default async function ProjectDetailsPage({
   const codeReview = tasks?.filter(t => t.status === 'code_review').length || 0
   const done = tasks?.filter(t => t.status === 'done').length || 0
 
+  // Build members list for KanbanBoard assignee dropdown
+  // Use project members if any, otherwise fall back to all profiles
+  const kanbanMembers = projectMembers.length > 0
+    ? projectMembers.map((m: any) => ({ id: m.id, full_name: m.full_name }))
+    : allProfiles.map(p => ({ id: p.id, full_name: p.full_name }))
+
   return (
     <div>
       <div className="mb-6">
@@ -75,12 +82,12 @@ export default async function ProjectDetailsPage({
           Back to Projects
         </Link>
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">{project.name}</h1>
-            <p className="text-sm text-foreground/50 mt-1 max-w-2xl">
-              {project.description || 'No description provided.'}
-            </p>
-          </div>
+          <EditableProjectHeader
+            projectId={id}
+            name={project.name}
+            description={project.description}
+            isAdmin={isAdmin}
+          />
           <div className="flex items-center gap-2 shrink-0">
             {isAdmin && (
               <>
@@ -142,7 +149,7 @@ export default async function ProjectDetailsPage({
           <KanbanBoard
             initialTasks={tasks}
             isAdmin={isAdmin}
-            members={projectMembers} 
+            members={kanbanMembers} 
           />
         )}
       </div>

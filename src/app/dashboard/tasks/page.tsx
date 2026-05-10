@@ -19,18 +19,25 @@ export default async function TaskBoardPage() {
 
   const isAdmin = profile?.role === 'admin'
 
-  // Admin: show ALL tasks from all projects they own
-  // Member: show tasks assigned to them
-  let query = supabase
-    .from('tasks')
-    .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
-    .order('created_at', { ascending: false })
+  let tasks: any[] = []
 
-  if (!isAdmin) {
-    query = query.eq('assigned_to', user.id)
+  if (isAdmin) {
+    // Admin: show tasks from projects they created
+    const { data } = await supabase
+      .from('tasks')
+      .select('*, projects!inner(name, created_by), assigned:profiles!tasks_assigned_to_fkey(full_name)')
+      .eq('projects.created_by', user.id)
+      .order('created_at', { ascending: false })
+    tasks = data || []
+  } else {
+    // Member: show tasks assigned to them
+    const { data } = await supabase
+      .from('tasks')
+      .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
+      .eq('assigned_to', user.id)
+      .order('created_at', { ascending: false })
+    tasks = data || []
   }
-
-  const { data: tasks } = await query
 
   let members: { id: string; full_name: string }[] = []
   if (isAdmin) {
@@ -43,10 +50,10 @@ export default async function TaskBoardPage() {
       <div className="mb-5">
         <h1 className="text-xl font-bold text-foreground">{isAdmin ? 'Task Board' : 'My Tasks'}</h1>
         <p className="text-sm text-foreground/50 mt-1">
-          {isAdmin ? 'All tasks across every project' : 'Drag tasks to update their progress'}
+          {isAdmin ? 'All tasks across your projects' : 'Drag tasks to update their progress'}
         </p>
       </div>
-      <KanbanBoard initialTasks={tasks || []} isAdmin={isAdmin} members={members} />
+      <KanbanBoard initialTasks={tasks} isAdmin={isAdmin} members={members} />
     </div>
   )
 }

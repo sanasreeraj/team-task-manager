@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { User, Mail, Phone, Shield, Calendar } from 'lucide-react'
+import { Mail, Shield, Calendar } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { EditableField } from '@/components/EditableField'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -32,15 +33,15 @@ export default async function SettingsPage() {
         <div className="rounded-2xl bg-card border border-border/60 overflow-hidden">
           <div className="px-5 py-4 border-b border-border/40">
             <h2 className="text-sm font-semibold text-foreground">Profile Information</h2>
+            <p className="text-[10px] text-foreground/40 mt-0.5">Hover over a field and click the pencil icon to edit</p>
           </div>
           <div className="divide-y divide-border/30">
-            <div className="px-5 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <User className="w-4 h-4 text-foreground/35" />
-                <span className="text-sm text-foreground/60">Full Name</span>
-              </div>
-              <span className="text-sm font-medium text-foreground">{profile?.full_name}</span>
-            </div>
+            <EditableField
+              label="Full Name"
+              value={profile?.full_name || ''}
+              field="full_name"
+              iconName="user"
+            />
             <div className="px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-foreground/35" />
@@ -48,13 +49,13 @@ export default async function SettingsPage() {
               </div>
               <span className="text-sm font-medium text-foreground">{user.email}</span>
             </div>
-            <div className="px-5 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-foreground/35" />
-                <span className="text-sm text-foreground/60">Phone</span>
-              </div>
-              <span className="text-sm font-medium text-foreground">+91 {profile?.phone_number || '—'}</span>
-            </div>
+            <EditableField
+              label="Phone"
+              value={profile?.phone_number || ''}
+              field="phone_number"
+              iconName="phone"
+              prefix="+91 "
+            />
             <div className="px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Shield className="w-4 h-4 text-foreground/35" />

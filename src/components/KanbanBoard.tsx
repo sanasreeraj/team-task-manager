@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { updateTaskStatus, updateTask, deleteTask } from '@/app/dashboard/tasks/actions'
 import { addComment, getComments } from '@/app/dashboard/tasks/comments'
-import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Send } from 'lucide-react'
+import { Calendar, FolderKanban, GripVertical, Pencil, Trash2, X, MessageSquare, Search, Send, Loader2, User } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 type Task = {
   id: string
@@ -49,23 +50,44 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+  const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sendingComment, setSendingComment] = useState(false)
+  const editingTaskId = useRef<string | null>(null)
 
   // Load comments when editing a task
   useEffect(() => {
-    if (editingTask) {
+    const taskId = editingTask?.id || null
+    if (taskId && taskId !== editingTaskId.current) {
+      editingTaskId.current = taskId
       setLoadingComments(true)
-      getComments(editingTask.id).then(res => {
-        setComments(res.data as Comment[])
-        setLoadingComments(false)
+      getComments(taskId).then(res => {
+        if (editingTaskId.current === taskId) {
+          setComments(res.data as Comment[])
+          setLoadingComments(false)
+        }
       })
-    } else {
+    }
+    if (!taskId) {
+      editingTaskId.current = null
       setComments([])
       setNewComment('')
     }
   }, [editingTask?.id])
+
+  // Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && editingTask) {
+        setEditingTask(null)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [editingTask])
 
   const handleDragStart = (taskId: string) => setDraggedTask(taskId)
   const handleDragOver = (e: React.DragEvent, columnId: string) => { e.preventDefault(); setDropTarget(columnId) }
@@ -80,18 +102,44 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
     setTasks(prev => prev.map(t => t.id === draggedTask ? { ...t, status: columnId } : t))
     setDraggedTask(null)
     const result = await updateTaskStatus(task.id, task.project_id, columnId)
-    if (result.error) setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: task.status } : t))
+    if (result.error) {
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: task.status } : t))
+      toast.error('Failed to update status')
+    } else {
+      toast.success(`Moved to ${COLUMNS.find(c => c.id === columnId)?.label}`)
+    }
   }
 
   const handleDeleteTask = async (taskId: string, projectId: string) => {
-    if (!confirm('Delete this task?')) return
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    
+    // Custom toast confirmation
+    toast((t) => (
+      <div className="flex items-center gap-3">
+        <span className="text-sm">Delete &quot;{task.title}&quot;?</span>
+        <div className="flex gap-1">
+          <button onClick={() => { toast.dismiss(t.id); performDelete(taskId, projectId) }} className="px-2 py-1 bg-red-500 text-white rounded text-xs font-medium">Delete</button>
+          <button onClick={() => toast.dismiss(t.id)} className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs font-medium">Cancel</button>
+        </div>
+      </div>
+    ), { duration: 10000 })
+  }
+
+  const performDelete = async (taskId: string, projectId: string) => {
     setTasks(prev => prev.filter(t => t.id !== taskId))
     const result = await deleteTask(taskId, projectId)
-    if (result.error) setTasks(initialTasks)
+    if (result.error) {
+      setTasks(initialTasks)
+      toast.error('Failed to delete task')
+    } else {
+      toast.success('Task deleted')
+    }
   }
 
   const handleSaveEdit = async () => {
     if (!editingTask) return
+    setSaving(true)
     const result = await updateTask(editingTask.id, editingTask.project_id, {
       title: editingTask.title,
       description: editingTask.description || '',
@@ -100,25 +148,36 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
       assigned_to: editingTask.assigned_to || null,
       due_date: editingTask.due_date || null,
     })
-    if (result.error) { alert('Failed to save'); return }
+    setSaving(false)
+    if (result.error) {
+      toast.error(result.error)
+      return
+    }
     setTasks(prev => prev.map(t => t.id === editingTask.id ? editingTask : t))
     setEditingTask(null)
+    toast.success('Task updated')
   }
 
   const handleAddComment = async () => {
     if (!editingTask || !newComment.trim()) return
+    setSendingComment(true)
     const result = await addComment(editingTask.id, newComment.trim())
     if (!result.error) {
       setNewComment('')
       const res = await getComments(editingTask.id)
       setComments(res.data as Comment[])
+      toast.success('Feedback added')
+    } else {
+      toast.error('Failed to add feedback')
     }
+    setSendingComment(false)
   }
 
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesPriority = filterPriority === 'all' || t.priority === filterPriority
-    return matchesSearch && matchesPriority
+    const matchesAssignee = filterAssignee === 'all' || t.assigned_to === filterAssignee || (filterAssignee === 'unassigned' && !t.assigned_to)
+    return matchesSearch && matchesPriority && matchesAssignee
   })
 
   const getTasksForColumn = useCallback((columnId: string) => filteredTasks.filter(t => t.status === columnId), [filteredTasks])
@@ -126,8 +185,8 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
   return (
     <>
       {/* Filter Bar */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30" />
           <input
             type="text"
@@ -148,6 +207,19 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
+        {members && members.length > 0 && (
+          <select
+            value={filterAssignee}
+            onChange={(e) => setFilterAssignee(e.target.value)}
+            className="rounded-lg border border-border/50 bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none transition-all"
+          >
+            <option value="all">All Assignees</option>
+            <option value="unassigned">Unassigned</option>
+            {members.map(m => (
+              <option key={m.id} value={m.id}>{m.full_name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Board */}
@@ -215,7 +287,10 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                         </div>
                       )}
                       <div className="flex items-center justify-between text-[10px] text-foreground/40">
-                        <span className="truncate">{task.assigned?.full_name || 'Unassigned'}</span>
+                        <span className="truncate flex items-center gap-1">
+                          <User className="w-2.5 h-2.5" />
+                          {task.assigned?.full_name || 'Unassigned'}
+                        </span>
                         {task.due_date && (
                           <span className={`flex items-center gap-0.5 shrink-0 ${task.due_date < new Date().toISOString().split('T')[0] && task.status !== 'done' ? 'text-red-500 font-semibold' : ''}`}>
                             <Calendar className="w-2.5 h-2.5" />
@@ -244,6 +319,10 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 shrink-0">
               <h2 className="text-sm font-bold text-foreground">Edit Task</h2>
+              <div className="flex items-center gap-1 text-[10px] text-foreground/30">
+                <kbd className="px-1.5 py-0.5 rounded bg-foreground/5 border border-border/30 text-[9px]">Esc</kbd>
+                <span>to close</span>
+              </div>
               <button onClick={() => setEditingTask(null)} className="p-1.5 rounded-lg hover:bg-foreground/5 transition-all">
                 <X className="w-4 h-4 text-foreground/40" />
               </button>
@@ -304,7 +383,9 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[300px] min-h-[200px]">
                     {loadingComments ? (
-                      <p className="text-xs text-foreground/30 text-center py-8">Loading...</p>
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-4 h-4 text-foreground/30 animate-spin" />
+                      </div>
                     ) : comments.length === 0 ? (
                       <p className="text-xs text-foreground/30 text-center py-8">No feedback yet</p>
                     ) : (
@@ -324,12 +405,12 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
                       <input
                         value={newComment}
                         onChange={e => setNewComment(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleAddComment()}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
                         placeholder="Add feedback..."
                         className="flex-1 rounded-lg border border-border bg-background py-1.5 px-3 text-xs text-foreground placeholder:text-foreground/25 focus:border-primary focus:outline-none"
                       />
-                      <button onClick={handleAddComment} disabled={!newComment.trim()} className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all">
-                        <Send className="w-3.5 h-3.5" />
+                      <button onClick={handleAddComment} disabled={!newComment.trim() || sendingComment} className="p-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 transition-all">
+                        {sendingComment ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -339,8 +420,9 @@ export function KanbanBoard({ initialTasks, isAdmin, members }: { initialTasks: 
 
             {/* Footer */}
             <div className="flex items-center gap-3 px-6 py-4 border-t border-border/30 shrink-0">
-              <button onClick={handleSaveEdit} className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]">
-                Save Changes
+              <button onClick={handleSaveEdit} disabled={saving} className="flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2">
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button onClick={() => setEditingTask(null)} className="flex-1 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-foreground/[0.02] transition-all active:scale-[0.98]">
                 Cancel
