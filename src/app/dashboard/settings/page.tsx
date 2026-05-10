@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { User, Mail, Phone, Shield } from 'lucide-react'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -22,44 +23,62 @@ export default async function SettingsPage() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-        <p className="text-sm text-foreground/70 mt-1">
-          Manage your account preferences and profile
+        <p className="text-sm text-foreground/50 mt-1">
+          Your account information
         </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="rounded-3xl bg-card/80 backdrop-blur-xl border border-border/50 p-8 shadow-sm">
-          <h2 className="text-lg font-semibold text-foreground mb-6">Profile Information</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground/50 mb-1">Full Name</label>
-              <p className="text-foreground font-medium bg-background/50 rounded-xl px-4 py-3 border border-border/50">
-                {profile?.full_name}
-              </p>
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-border/30">
+            <h2 className="text-sm font-semibold text-foreground">Profile</h2>
+          </div>
+          <div className="divide-y divide-border/20">
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <User className="w-4 h-4 text-foreground/30" />
+                <span className="text-sm text-foreground/60">Full Name</span>
+              </div>
+              <span className="text-sm font-medium text-foreground">{profile?.full_name}</span>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground/50 mb-1">Role</label>
-              <p className="text-foreground font-medium bg-background/50 rounded-xl px-4 py-3 border border-border/50 capitalize">
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-foreground/30" />
+                <span className="text-sm text-foreground/60">Email</span>
+              </div>
+              <span className="text-sm font-medium text-foreground">{user.email}</span>
+            </div>
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Phone className="w-4 h-4 text-foreground/30" />
+                <span className="text-sm text-foreground/60">Phone</span>
+              </div>
+              <span className="text-sm font-medium text-foreground">+91 {profile?.phone_number || '—'}</span>
+            </div>
+            <div className="px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Shield className="w-4 h-4 text-foreground/30" />
+                <span className="text-sm text-foreground/60">Role</span>
+              </div>
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                profile?.role === 'admin' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'
+              }`}>
                 {profile?.role}
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground/50 mb-1">Phone Number</label>
-              <p className="text-foreground font-medium bg-background/50 rounded-xl px-4 py-3 border border-border/50">
-                +91 {profile?.phone_number}
-              </p>
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="rounded-3xl bg-red-500/5 border border-red-500/10 p-8 shadow-sm">
-          <h2 className="text-lg font-semibold text-red-500 mb-2">Danger Zone</h2>
-          <p className="text-sm text-red-500/70 mb-6">
-            Permanently delete your account and all associated data. This action cannot be undone.
-          </p>
-          <button className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 transition-all active:scale-95">
-            Delete Account
-          </button>
+        <div className="rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-sm overflow-hidden">
+          <div className="px-6 py-5 border-b border-border/30">
+            <h2 className="text-sm font-semibold text-foreground">Account</h2>
+          </div>
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-foreground/60">Member since</p>
+              <p className="text-xs text-foreground/30 mt-0.5">{new Date(profile?.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

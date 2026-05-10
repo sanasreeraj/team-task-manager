@@ -1,8 +1,9 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, ChevronLeft } from 'lucide-react'
+import { Plus, ChevronLeft, ListChecks, CheckCircle2, Clock, Eye } from 'lucide-react'
 import { KanbanBoard } from '@/components/KanbanBoard'
+import { DeleteProjectButton } from '@/components/DeleteProjectButton'
 
 export default async function ProjectDetailsPage({
   params,
@@ -44,7 +45,6 @@ export default async function ProjectDetailsPage({
     .eq('project_id', id)
     .order('created_at', { ascending: false })
 
-  // Get members for admin edit modal
   let members: { id: string; full_name: string }[] = []
   if (isAdmin) {
     const { data } = await supabase
@@ -53,38 +53,74 @@ export default async function ProjectDetailsPage({
     members = data || []
   }
 
+  // Task stats
+  const total = tasks?.length || 0
+  const todo = tasks?.filter(t => t.status === 'todo').length || 0
+  const inProgress = tasks?.filter(t => t.status === 'in_progress').length || 0
+  const codeReview = tasks?.filter(t => t.status === 'code_review').length || 0
+  const done = tasks?.filter(t => t.status === 'done').length || 0
+
   return (
     <div>
       <div className="mb-6">
         <Link
           href="/dashboard/projects"
-          className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-primary transition-colors mb-4"
+          className="inline-flex items-center gap-1 text-xs text-foreground/40 hover:text-primary transition-colors mb-4"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
           Back to Projects
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">{project.name}</h1>
-            <p className="text-sm text-foreground/70 mt-1 max-w-2xl">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{project.name}</h1>
+            <p className="text-sm text-foreground/50 mt-1 max-w-2xl">
               {project.description || 'No description provided.'}
             </p>
           </div>
-          {isAdmin && (
-            <Link
-              href={`/dashboard/projects/${id}/tasks/new`}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              Add Task
-            </Link>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {isAdmin && (
+              <>
+                <Link
+                  href={`/dashboard/projects/${id}/tasks/new`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Task
+                </Link>
+                <DeleteProjectButton projectId={id} projectName={project.name} />
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Task Stats Bar */}
+        {total > 0 && (
+          <div className="mt-6 flex items-center gap-6 text-xs text-foreground/50">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500/60" />
+              To Do {todo}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-500/60" />
+              In Progress {inProgress}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-purple-500/60" />
+              Review {codeReview}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-green-500/60" />
+              Done {done}
+            </span>
+            <span className="ml-auto font-medium text-foreground/70">{total} total</span>
+          </div>
+        )}
       </div>
 
       {!tasks || tasks.length === 0 ? (
         <div className="text-center py-20 bg-card/50 backdrop-blur-xl border border-dashed border-border rounded-3xl">
-          <p className="text-foreground/50">No tasks found in this project. {isAdmin ? 'Add a task to get started!' : ''}</p>
+          <ListChecks className="w-10 h-10 text-foreground/10 mx-auto mb-3" />
+          <p className="text-foreground/40 text-sm">{isAdmin ? 'Add your first task to get started' : 'No tasks in this project'}</p>
         </div>
       ) : (
         <KanbanBoard 
