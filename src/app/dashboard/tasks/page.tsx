@@ -17,11 +17,10 @@ export default async function TaskBoardPage() {
   let tasks: any[] = []
 
   if (isAdmin) {
-    // Admin: show tasks from projects they created
+    // Admin: show tasks from all projects
     const { data } = await supabase
       .from('tasks')
-      .select('*, projects!inner(name, created_by), assigned:profiles!tasks_assigned_to_fkey(full_name)')
-      .eq('projects.created_by', user.id)
+      .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
       .order('created_at', { ascending: false })
     tasks = data || []
   } else {

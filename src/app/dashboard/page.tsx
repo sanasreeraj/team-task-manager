@@ -37,12 +37,10 @@ export default async function DashboardPage() {
     const { count: pCount } = await supabase
       .from('projects')
       .select('*', { count: 'exact', head: true })
-      .eq('created_by', user.id)
     
     const { data: allTasks } = await supabase
       .from('tasks')
-      .select('*, projects!inner(name, created_by), assigned:profiles!tasks_assigned_to_fkey(full_name)')
-      .eq('projects.created_by', user.id)
+      .select('*, projects(name), assigned:profiles!tasks_assigned_to_fkey(full_name)')
 
     projectCount = pCount || 0
     taskCount = allTasks?.length || 0
