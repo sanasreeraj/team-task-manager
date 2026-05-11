@@ -88,7 +88,7 @@ export function ProjectMembers({
                 <div key={profile.id} className="flex items-center justify-between bg-card border border-border/40 rounded-lg p-2.5">
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{profile.full_name}</p>
-                    <p className="text-[10px] text-foreground/40 truncate">{profile.designation || profile.role}</p>
+                    <p className="text-[10px] text-foreground/40 truncate">{profile.role}</p>
                   </div>
                   <button
                     onClick={() => handleAdd(profile.id)}
@@ -113,7 +113,7 @@ export function ProjectMembers({
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-foreground truncate">{member.full_name}</p>
-                <p className="text-[9px] font-medium text-foreground/40 uppercase tracking-tight">{member.designation || member.role}</p>
+                <p className="text-[9px] font-medium text-foreground/40 uppercase tracking-tight">{member.role}</p>
               </div>
             </div>
             {isAdmin && (

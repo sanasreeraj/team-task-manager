@@ -48,7 +48,7 @@ export default async function ProjectDetailsPage({
   // Fetch all profiles for admin to add members
   let allProfiles: any[] = []
   if (isAdmin) {
-    const { data } = await supabase.from('profiles').select('id, full_name, role, designation')
+    const { data } = await supabase.from('profiles').select('id, full_name, role')
     allProfiles = data || []
   }
 

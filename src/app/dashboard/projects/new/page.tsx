@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 
 export default async function NewProjectPage({
@@ -36,6 +37,11 @@ export default async function NewProjectPage({
 
     if (!user) return
 
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
+    if (profile?.is_admin !== true) {
+      redirect('/dashboard/projects/new?error=' + encodeURIComponent('Unauthorized to create projects'))
+    }
+
     const name = (formData.get('name') as string)?.trim()
     const description = (formData.get('description') as string)?.trim()
 
@@ -43,7 +49,8 @@ export default async function NewProjectPage({
       redirect('/dashboard/projects/new?error=' + encodeURIComponent('Project name is required'))
     }
 
-    const { error } = await supabase.from('projects').insert({
+    const adminClient = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { error } = await adminClient.from('projects').insert({
       name,
       description: description || null,
       created_by: user.id,

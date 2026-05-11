@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { ChevronLeft, ChevronDown } from 'lucide-react'
+import { getProjectMembers } from '../../member-actions'
 
 export default async function NewTaskPage({
   params,
@@ -39,15 +40,14 @@ export default async function NewTaskPage({
     .eq('id', id)
     .single()
 
-  // Fetch ALL profiles (not just members — admins should be assignable too)
-  const { data: members } = await supabase
-    .from('profiles')
-    .select('id, full_name')
+  // Fetch only members assigned to this specific project
+  const projectMembers = await getProjectMembers(id)
+  const members = projectMembers.map((m: any) => ({ id: m.id, full_name: m.full_name }))
 
   async function createTask(formData: FormData) {
     'use server'
     const supabase = await createClient()
-    
+
     const title = (formData.get('title') as string)?.trim()
     const description = (formData.get('description') as string)?.trim()
     const assigned_to = formData.get('assigned_to') as string
