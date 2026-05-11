@@ -37,7 +37,7 @@ export async function deleteMember(memberId: string) {
   return { success: true }
 }
 
-export async function updateMemberDetails(memberId: string, data: { full_name: string; phone_number: string; email: string; role: string }) {
+export async function updateMemberDetails(memberId: string, data: { full_name: string; phone_number: string; email: string; role: string; is_admin?: boolean }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user?.id).single()
@@ -58,7 +58,8 @@ export async function updateMemberDetails(memberId: string, data: { full_name: s
       full_name: data.full_name, 
       phone_number: data.phone_number, 
       email: data.email,
-      role: data.role 
+      role: data.role,
+      ...(data.is_admin !== undefined ? { is_admin: data.is_admin } : {})
     })
     .eq('id', memberId)
 

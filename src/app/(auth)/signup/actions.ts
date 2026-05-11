@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
@@ -54,6 +55,12 @@ export async function signup(formData: FormData) {
 
   if (error) {
     redirect('/signup?error=' + encodeURIComponent(error.message))
+  }
+
+  if (authData.user) {
+    // Manually ensure email is populated in the profile in case the Postgres trigger misses it
+    const adminClient = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    await adminClient.from('profiles').update({ email }).eq('id', authData.user.id)
   }
 
   if (!authData.session) {

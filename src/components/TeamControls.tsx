@@ -22,7 +22,11 @@ export function MemberControls({
     phone_number: member.phone_number || '',
     email: member.email || '',
     role: member.role || 'Member',
+    is_admin: member.is_admin || false,
   })
+  
+  const isCustomRoleInitial = !ROLES.includes(member.role)
+  const [isCustomRole, setIsCustomRole] = useState(isCustomRoleInitial)
   
   const isSelf = member.id === currentUserId
   const isOtherAdmin = member.is_admin && !isSelf
@@ -115,13 +119,56 @@ export function MemberControls({
               </div>
               <div>
                 <label className="block text-xs font-medium text-foreground/60 mb-1">Role</label>
-                <div className="relative">
-                  <select value={editData.role} onChange={e => setEditData({...editData, role: e.target.value})} className="w-full rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-sm focus:border-primary focus:outline-none appearance-none">
-                    <option value={editData.role}>{editData.role}</option>
-                    {ROLES.filter(r => r !== editData.role).map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
-                </div>
+                {isCustomRole ? (
+                  <div className="flex items-center gap-2">
+                    <input 
+                      autoFocus
+                      value={editData.role} 
+                      onChange={e => setEditData({...editData, role: e.target.value})} 
+                      className="w-full rounded-lg border border-border bg-background py-1.5 px-3 text-sm focus:border-primary focus:outline-none"
+                      placeholder="Type custom role..."
+                    />
+                    <button onClick={() => {
+                      setIsCustomRole(false)
+                      setEditData({...editData, role: 'Member'})
+                    }} className="p-1.5 rounded-lg text-foreground/40 hover:bg-foreground/5 hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <select 
+                      value={ROLES.includes(editData.role) ? editData.role : 'Custom'} 
+                      onChange={e => {
+                        if (e.target.value === 'Custom') {
+                          setIsCustomRole(true)
+                          setEditData({...editData, role: ''})
+                        } else {
+                          setEditData({...editData, role: e.target.value})
+                        }
+                      }} 
+                      className="w-full rounded-lg border border-border bg-background py-1.5 pl-3 pr-8 text-sm focus:border-primary focus:outline-none appearance-none"
+                    >
+                      <option value={editData.role} className="hidden">{editData.role}</option>
+                      {ROLES.filter(r => r !== editData.role).map(r => <option key={r} value={r}>{r}</option>)}
+                      <option value="Custom">Custom...</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer mt-2 w-fit">
+                  <input 
+                    type="checkbox" 
+                    checked={editData.is_admin} 
+                    onChange={e => setEditData({...editData, is_admin: e.target.checked})} 
+                    className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" 
+                    disabled={isSelf} 
+                  />
+                  <span className="text-xs font-medium text-foreground/80 select-none">Admin Privileges</span>
+                </label>
+                {isSelf && <p className="text-[10px] text-foreground/40 mt-1">You cannot remove your own admin rights.</p>}
               </div>
             </div>
             <div className="px-5 py-4 border-t border-border/30 bg-foreground/[0.02] flex items-center justify-end gap-2">
