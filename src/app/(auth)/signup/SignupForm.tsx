@@ -3,12 +3,14 @@
 import { signup } from './actions'
 import Link from 'next/link'
 import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
 export function SignupForm() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
@@ -71,7 +73,7 @@ export function SignupForm() {
             value={name}
             onChange={(e) => validateName(e.target.value)}
             className={`block w-full rounded-xl border ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary focus:border-primary'} bg-background py-3 px-4 text-foreground shadow-sm placeholder:text-foreground/40 focus:ring-1 focus:outline-none transition-all sm:text-sm`}
-            placeholder="John Doe"
+            placeholder="Sana Sreeraj"
           />
           {errors.name && <p className="mt-1.5 text-sm font-medium text-red-500">{errors.name}</p>}
         </div>
@@ -120,17 +122,26 @@ export function SignupForm() {
           <label htmlFor="password" className="block text-sm font-medium text-foreground/90 mb-1.5">
             Password
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            value={password}
-            onChange={(e) => validatePassword(e.target.value)}
-            className={`block w-full rounded-xl border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary focus:border-primary'} bg-background py-3 px-4 text-foreground shadow-sm placeholder:text-foreground/40 focus:ring-1 focus:outline-none transition-all sm:text-sm`}
-            placeholder="••••••••"
-          />
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => validatePassword(e.target.value)}
+              className={`block w-full rounded-xl border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-border focus:ring-primary focus:border-primary'} bg-background py-3 pl-4 pr-10 text-foreground shadow-sm placeholder:text-foreground/40 focus:ring-1 focus:outline-none transition-all sm:text-sm`}
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-foreground/50 hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           {errors.password && <p className="mt-1.5 text-sm font-medium text-red-500">{errors.password}</p>}
         </div>
         
